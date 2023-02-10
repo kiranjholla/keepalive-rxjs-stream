@@ -1,7 +1,8 @@
-import { interval, Observable, ObservableInput, takeWhile } from 'rxjs';
+import { interval, Observable, ObservableInput, Subject, takeUntil, takeWhile } from 'rxjs';
 import { keepStreamAlive } from './keep-alive';
 
 let taking: number | null = null;
+let disconnectNow$ = new Subject<void>();
 
 const RECONNECT_STRATEGY: 'IMMEDIATE' | 'OPTIMIZE' = 'IMMEDIATE';
 const RECONNECT_DELAY = 2000;
@@ -24,7 +25,7 @@ function takeMore(x: number): boolean {
 }
 
 // We are just putting a dummy logic to allow
-// the stream to disconnect after 2 minutes of
+// the stream to disconnect after 1 minute of
 // keeping it alive.
 //
 // This is just simulation logic to decide
@@ -35,7 +36,11 @@ let isItTimeToStopKeepingAlive = false;
 setTimeout(function timeExpired() {
   console.log('Stop keeping alive now.');
   isItTimeToStopKeepingAlive = true;
-}, 120000);
+
+  // Mechanism to force immediate disconnection
+  disconnectNow$.next();
+  disconnectNow$.complete();
+}, 60000);
 
 function notifyStop(): ObservableInput<any> {
   return new Observable(observer => {
@@ -63,7 +68,7 @@ function notifyStop(): ObservableInput<any> {
 }
 
 interval(1000)
-  .pipe(takeWhile(takeMore), keepStreamAlive({ notifyStop }))
+  .pipe(takeWhile(takeMore), takeUntil(disconnectNow$), keepStreamAlive({ notifyStop }))
   .subscribe({
     next: console.log,
     error: console.error,
