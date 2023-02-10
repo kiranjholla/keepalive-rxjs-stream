@@ -3,6 +3,9 @@ import { keepStreamAlive } from './keep-alive';
 
 let taking: number | null = null;
 
+const RECONNECT_STRATEGY: 'IMMEDIATE' | 'OPTIMIZE' = 'IMMEDIATE';
+const RECONNECT_DELAY = 2000;
+
 function howManyToTake(): number {
   let innerCount: number = Math.floor(Math.random() * 10);
   console.log(`Taking till ${innerCount} before simulating disconnection`);
@@ -46,11 +49,15 @@ function notifyStop(): ObservableInput<any> {
       // If the stream can be allowed to disconnect, then complete the observer
       console.log('Stream can now be disconnected. Stop keeping it alive.');
       observer.complete();
-
     } else {
       // If the stream must be kept alive, send an empty value on observer.next()
       console.log('Stream seems to have disconnected. Keep it alive...');
-      setTimeout(() => observer.next(), 2000);
+
+      if (RECONNECT_STRATEGY === 'IMMEDIATE') {
+        observer.next();
+      } else {
+        setTimeout(() => observer.next(), RECONNECT_DELAY);
+      }
     }
   });
 }
