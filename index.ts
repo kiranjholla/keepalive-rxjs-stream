@@ -1,19 +1,22 @@
 import { interval, takeWhile } from 'rxjs';
 import { keepStreamAlive } from './keep-alive';
 
-let taking: number = 1;
+let taking: number | null = null;
 
 function howManyToTake(): number {
-  let innerCount: number = Math.floor(Math.random() * 5);
-  console.log('Taking: ', innerCount);
+  let innerCount: number = Math.floor(Math.random() * 10);
+  console.log(`Taking till ${innerCount} before simulating disconnection`);
   return innerCount;
 }
 
 function takeMore(x: number): boolean {
+  if (taking == null) taking = howManyToTake();
+
   if (x > taking) {
-    taking = howManyToTake();
+    taking = null;
     return false;
   }
+
   return true;
 }
 
