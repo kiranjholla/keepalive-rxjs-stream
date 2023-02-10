@@ -1,4 +1,4 @@
-import { interval, takeWhile } from 'rxjs';
+import { interval, Observable, takeWhile } from 'rxjs';
 import { keepStreamAlive } from './keep-alive';
 
 let taking: number | null = null;
@@ -23,8 +23,18 @@ function takeMore(x: number): boolean {
 interval(1000)
   .pipe(
     takeWhile(takeMore),
-    keepStreamAlive()
+    keepStreamAlive({
+      notifyStop: () =>
+        new Observable(observer => {
+          console.log('Stream seems to have disconnected. Keep it alive...');
+          setTimeout(() => observer.next(), 2000);
+        })
+    })
   )
-  .subscribe(console.log);
+  .subscribe({
+    next: console.log,
+    error: console.error,
+    complete: () => console.log('Stream completed. Will not try to reconnect.')
+  });
 
 // Open the console in the bottom right to see results.
